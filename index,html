@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario de Pastillas</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js"></script>
+  <style>
+    body { font-family: Arial; background: #f2f2f2; padding: 20px; }
+    h1 { text-align: center; }
+    #formulario { margin-bottom: 20px; text-align:center; }
+    input, button { padding: 8px; margin: 5px; border-radius: 8px; border: 1px solid #ccc; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    button { cursor: pointer; }
+    button:hover { background: #e1e1e1; }
+  </style>
+</head>
+<body>
+
+<h1>💊 Inventario de Pastillas del Abuelo</h1>
+
+<div id="formulario">
+  <input id="nombre" placeholder="Nombre del medicamento">
+  <input id="cantidad" type="number" placeholder="Cantidad">
+  <input id="notas" placeholder="Notas u observaciones">
+  <button onclick="agregar()">Agregar</button>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Medicamento</th><th>Cantidad</th><th>Notas</th><th>Acciones</th></tr>
+  </thead>
+  <tbody id="lista"></tbody>
+</table>
+
+<script>
+  // ✅ Configuración de tu proyecto Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyAIL_YNhxBzn16bRW8VRvw7vBP812lN8pM",
+    authDomain: "inventarioabuela-db48f.firebaseapp.com",
+    databaseURL: "https://inventarioabuela-db48f-default-rtdb.firebaseio.com",
+    projectId: "inventarioabuela-db48f",
+    storageBucket: "inventarioabuela-db48f.firebasestorage.app",
+    messagingSenderId: "59938878894",
+    appId: "1:59938878894:web:a31b673d2ed9b5b759043f",
+    measurementId: "G-PVFKXM4CKM"
+  };
+
+  // Inicializa Firebase y la base de datos
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database(app);
+
+  const nombreInput = document.getElementById("nombre");
+  const cantidadInput = document.getElementById("cantidad");
+  const notasInput = document.getElementById("notas");
+  const lista = document.getElementById("lista");
+
+  // 🟢 Agregar medicamento
+  function agregar() {
+    const nombre = nombreInput.value.trim();
+    const cantidad = parseInt(cantidadInput.value);
+    const notas = notasInput.value.trim();
+
+    if (!nombre || isNaN(cantidad)) {
+      alert("Completa los campos correctamente");
+      return;
+    }
+
+    const nuevo = db.ref("medicamentos").push();
+    nuevo.set({ nombre, cantidad, notas });
+    nombreInput.value = cantidadInput.value = notasInput.value = "";
+  }
+
+  // 🟡 Escuchar los cambios en la base de datos
+  db.ref("medicamentos").on("value", snap => {
+    lista.innerHTML = "";
+    snap.forEach(dato => {
+      const med = dato.val();
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td>${med.nombre}</td>
+        <td>${med.cantidad}</td>
+        <td>${med.notas || ""}</td>
+        <td>
+          <button onclick="cambiar('${dato.key}', ${med.cantidad + 1})">+1</button>
+          <button onclick="cambiar('${dato.key}', ${med.cantidad - 1})">-1</button>
+          <button onclick="eliminar('${dato.key}')">🗑️</button>
+        </td>
+      `;
+      lista.appendChild(fila);
+    });
+  });
+
+  // 🔵 Cambiar cantidad
+  function cambiar(id, nuevaCantidad) {
+    if (nuevaCantidad < 0) nuevaCantidad = 0;
+    db.ref("medicamentos/" + id + "/cantidad").set(nuevaCantidad);
+  }
+
+  // 🔴 Eliminar medicamento
+  function eliminar(id) {
+    if (confirm("¿Eliminar este medicamento?")) {
+      db.ref("medicamentos/" + id).remove();
+    }
+  }
+</script>
+
+</body>
+</html>
